@@ -63,16 +63,16 @@ let
   };
   mkCommonArtifactLinkCommand = { artifact }:
     ''
-      mkdir -p $out/artifacts/engine/common
-      lndir -silent ${artifact} $out/artifacts/engine/common
+      mkdir -p $out/common
+      lndir -silent ${artifact} $out/common
     '';
   mkPlatformArtifactLinkCommand = { artifact, os, architecture, variant ? null }:
     let
       artifactDirectory = "${os}-${architecture}${lib.optionalString (variant != null) "-${variant}"}";
     in
     ''
-      mkdir -p $out/artifacts/engine/${artifactDirectory}
-      lndir -silent ${artifact} $out/artifacts/engine/${artifactDirectory}
+      mkdir -p $out/${artifactDirectory}
+      lndir -silent ${artifact} $out/${artifactDirectory}
     '';
   engineArtifactDirectory =
     runCommandLocal "flutter-engine-artifacts-${flutter.version}" { nativeBuildInputs = [ lndir ]; }
@@ -106,12 +106,25 @@ let
             (builtins.attrNames (includedEngineArtifacts.platform or { }))))
       );
 
-  cacheDir = symlinkJoin {
-    name = "flutter-cache-dir";
-    paths = [
-      engineArtifactDirectory
-      "${flutter}/bin/cache"
-    ];
+  join' =
+    args_@{ name
+         , ...
+         }:
+    let
+      args = removeAttrs args_ [ "name" "postBuild" ]
+        // {
+          passAsFile = [ "paths" ];
+        }; # pass the defaults
+    in runCommandLocal name args
+      ''
+      cp -r ${flutter} $out
+      chmod +w $out/bin/cache/artifacts
+      cp -RL ${engineArtifactDirectory} $out/bin/cache/artifacts/engine
+      chmod -w $out/bin/cache/artifacts
+      '';
+
+  rootDir = join' {
+    name = "flutter-root";
   };
 
   # By default, Flutter stores downloaded files (such as the Pub cache) in the SDK directory.
@@ -120,8 +133,7 @@ let
   # We do not patch it since the script doesn't require engine artifacts(which are the only thing not added by the unwrapped derivation), so it shouldn't fail, and patching it will just be harder to maintain.
   immutableFlutter = writeShellScript "flutter_immutable" ''
     export PUB_CACHE=''${PUB_CACHE:-"$HOME/.pub-cache"}
-    export FLUTTER_CACHE_DIR=${cacheDir}
-    ${flutter}/bin/flutter "$@"
+    ${rootDir}/bin/flutter "$@"
   '';
 
   # Tools that the Flutter tool depends on.
