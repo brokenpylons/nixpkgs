@@ -64,7 +64,7 @@ let
   mkCommonArtifactLinkCommand = { artifact }:
     ''
       mkdir -p $out/common
-      lndir -silent ${artifact} $out/common
+      ln -sf ${artifact}/* $out/common
     '';
   mkPlatformArtifactLinkCommand = { artifact, os, architecture, variant ? null }:
     let
@@ -72,7 +72,7 @@ let
     in
     ''
       mkdir -p $out/${artifactDirectory}
-      lndir -silent ${artifact} $out/${artifactDirectory}
+      ln -sf ${artifact}/* $out/${artifactDirectory}
     '';
   engineArtifactDirectory =
     runCommandLocal "flutter-engine-artifacts-${flutter.version}" { nativeBuildInputs = [ lndir ]; }
@@ -106,26 +106,14 @@ let
             (builtins.attrNames (includedEngineArtifacts.platform or { }))))
       );
 
-  join' =
-    args_@{ name
-         , ...
-         }:
-    let
-      args = removeAttrs args_ [ "name" "postBuild" ]
-        // {
-          passAsFile = [ "paths" ];
-        }; # pass the defaults
-    in runCommandLocal name args
+  rootDir = runCommandLocal "flutter-root" { nativeBuildInputs = [ lndir ]; }
       ''
-      cp -r ${flutter} $out
-      chmod +w $out/bin/cache/artifacts
-      cp -RL ${engineArtifactDirectory} $out/bin/cache/artifacts/engine
-      chmod -w $out/bin/cache/artifacts
+      mkdir -p $out/bin/cache/artifacts
+      cp ${flutter}/bin/flutter $out/bin/flutter
+      cp -r ${flutter}/.git $out
+      lndir -silent ${flutter} $out
+      ln -s ${engineArtifactDirectory} $out/bin/cache/artifacts/engine
       '';
-
-  rootDir = join' {
-    name = "flutter-root";
-  };
 
   # By default, Flutter stores downloaded files (such as the Pub cache) in the SDK directory.
   # Wrap it to ensure that it does not do that, preferring home directories instead.
