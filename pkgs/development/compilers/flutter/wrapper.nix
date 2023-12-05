@@ -167,7 +167,7 @@ let
   includeFlags = map (pkg: "-isystem ${lib.getOutput "dev" pkg}/include") (appStaticBuildDeps ++ extraIncludes);
   linkerFlags = (map (pkg: "-rpath,${lib.getOutput "lib" pkg}/lib") appRuntimeDeps) ++ extraLinkerFlags;
 in
-(callPackage ./sdk-symlink.nix { }) (stdenv.mkDerivation
+(stdenv.mkDerivation
 {
   pname = "flutter-wrapped";
   inherit (flutter) version;
