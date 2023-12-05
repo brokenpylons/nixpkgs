@@ -193,7 +193,7 @@ in
     done
 
     mkdir -p $out/bin
-    makeWrapper '${immutableFlutter}' $out/bin/flutter \
+    makeShellWrapper '${immutableFlutter}' $out/bin/flutter \
       --set-default ANDROID_EMULATOR_USE_SYSTEM_LIBS 1 \
       --suffix PATH : '${lib.makeBinPath (tools ++ buildTools)}' \
       --suffix PKG_CONFIG_PATH : "$FLUTTER_PKG_CONFIG_PATH" \
