@@ -108,11 +108,10 @@ let
 
   rootDir = runCommandLocal "flutter-root" { nativeBuildInputs = [ lndir ]; }
       ''
-      mkdir -p $out/bin/cache/artifacts
+      cp -r ${flutter} $out
+      chmod +w $out/bin/cache/artifacts
       cp -RL ${engineArtifactDirectory} $out/bin/cache/artifacts/engine
-      cp ${flutter}/bin/flutter $out/bin/flutter
-      cp -r ${flutter}/.git $out
-      lndir -silent ${flutter} $out
+      chmod -w $out/bin/cache/artifacts
       '';
 
   # By default, Flutter stores downloaded files (such as the Pub cache) in the SDK directory.
